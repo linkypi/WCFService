@@ -1092,7 +1092,8 @@ namespace DAL
                                         o_audit_time = c.日期  from  [Mall_订单主表] a
                                         inner join dbo.Mall_订单流程明细 c on a.id = c.订单Id 
                                         inner join [dbo].[Mall_订单流程] b on  c.父id = b.id 
-                                        where a.日期<=@etime and a.日期>=@stime
+                                        where a.日期<=@etime and a.日期>=@stime AND c.id=(SELECT TOP 1 x.id FROM dbo.Mall_订单流程明细 x
+                                        WHERE x.订单id=a.id ORDER BY x.id DESC)
                                         )as x where  行号 between {3}  and {4} ",
                                data.page_size , data.etime, data.stime, data.page_size*(data.page_no-1)+1, data.page_size*data.page_no);
 
@@ -1104,7 +1105,8 @@ namespace DAL
                                         END  select c from( select c=count(1) from  [Mall_订单主表] a
                                         inner join dbo.Mall_订单流程明细 c on a.id = c.订单Id 
                                         inner join [dbo].[Mall_订单流程] b on  c.父id = b.id 
-                                        where a.日期<=@etime and a.日期>=@stime) as x ", data.etime, data.stime);
+                                        where a.日期<=@etime and a.日期>=@stime AND c.id=(SELECT TOP 1 x.id FROM dbo.Mall_订单流程明细 x
+                                        WHERE x.订单id=a.id ORDER BY x.id DESC) ) as x ", data.etime, data.stime);
                 //r_count
                 ReturnModel retmodel = SqlHelper.GetDataTable(strSql.ToString(), "x");
 
