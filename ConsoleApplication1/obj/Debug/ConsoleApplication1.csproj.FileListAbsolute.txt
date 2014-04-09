@@ -1,0 +1,15 @@
+H:\Projects\Beyond_CY\ConsoleApplication1\bin\Debug\ConsoleApplication1.exe.config
+H:\Projects\Beyond_CY\ConsoleApplication1\bin\Debug\ConsoleApplication1.exe
+H:\Projects\Beyond_CY\ConsoleApplication1\bin\Debug\ConsoleApplication1.pdb
+H:\Projects\Beyond_CY\ConsoleApplication1\obj\Debug\ConsoleApplication1.exe
+H:\Projects\Beyond_CY\ConsoleApplication1\obj\Debug\ConsoleApplication1.pdb
+H:\Projects\Beyond_CY\ConsoleApplication1\obj\Debug\ConsoleApplication1.csprojResolveAssemblyReference.cache
+C:\Users\Administrator\Desktop\Beyond_CY\ConsoleApplication1\bin\Debug\ConsoleApplication1.exe.config
+C:\Users\Administrator\Desktop\Beyond_CY\ConsoleApplication1\obj\Debug\ConsoleApplication1.exe
+C:\Users\Administrator\Desktop\Beyond_CY\ConsoleApplication1\obj\Debug\ConsoleApplication1.pdb
+C:\Users\Administrator\Desktop\Beyond_CY\ConsoleApplication1\bin\Debug\ConsoleApplication1.exe
+C:\Users\Administrator\Desktop\Beyond_CY\ConsoleApplication1\bin\Debug\ConsoleApplication1.pdb
+C:\Users\lenovo\Desktop\Beyond_CY\ConsoleApplication1\bin\Debug\ConsoleApplication1.exe.config
+C:\Users\lenovo\Desktop\Beyond_CY\ConsoleApplication1\obj\Debug\ConsoleApplication1.exe
+C:\Users\lenovo\Desktop\Beyond_CY\ConsoleApplication1\obj\Debug\ConsoleApplication1.pdb
+C:\Users\Administrator\Desktop\Beyond_CY\ConsoleApplication1\obj\Debug\ConsoleApplication1.csprojResolveAssemblyReference.cache

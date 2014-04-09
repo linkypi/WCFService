@@ -1,0 +1,1 @@
+﻿<%@ ServiceHost Language="C#" Debug="true" Service="OMS.OMSService" CodeBehind="OMSService.svc.cs" %>
