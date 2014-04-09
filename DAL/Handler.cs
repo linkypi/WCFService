@@ -185,7 +185,7 @@ namespace DAL
                         //dynamic model = new JObject(); Common.Tool.GetMD5_32(id + pwd).ToUpper()
                         if (userpwd.Equals(pwd))
                         {
-                            model.RetDics.Add("a_id",dt.Rows[0]["id"].ToString().Trim());
+                            model.RetDics.Add("a_id",Convert.ToInt32(dt.Rows[0]["id"]));
                             model.RetDics.Add("a_name", dt.Rows[0]["姓名"].ToString().Trim());
                         }
                         else
@@ -242,10 +242,10 @@ namespace DAL
                         foreach (DataRow row in dt.Rows)
                         {
                             Dictionary<string, object> dic = new Dictionary<string, object>();
-                            dic.Add("c_id", row["c_id"].ToString().Trim());
+                            dic.Add("c_id", Convert.ToInt32(row["c_id"]));
                             dic.Add("c_title", row["c_title"].ToString().Trim());
-                            dic.Add("c_pid", row["c_pid"].ToString().Trim());
-                            dic.Add("c_level", row["c_level"].ToString().Trim());
+                            dic.Add("c_pid",Convert.ToInt32( row["c_pid"].ToString().Trim()));
+                            dic.Add("c_level",Convert.ToInt32( row["c_level"].ToString().Trim()));
                             categorys.Add(dic);
                         }
                     
@@ -470,14 +470,14 @@ namespace DAL
                         foreach (DataRow row in dt.Rows)
                         {
                             Dictionary<string, object> dic = new Dictionary<string, object>();
-                            dic.Add("g_id", row["g_id"]);
-                            dic.Add("g_img_ts", row["g_img_ts"]);
-                            dic.Add("g_quantity", row["g_quantity"]);
+                            dic.Add("g_id", Convert.ToInt32(row["g_id"]));
+                            dic.Add("g_img_ts",Convert.ToInt32( row["g_img_ts"]));
+                            dic.Add("g_quantity",Convert.ToInt32(  row["g_quantity"]));
                             dic.Add("g_num", row["g_num"].ToString().Trim());
                             dic.Add("g_name", row["g_name"].ToString().Trim());
-                            dic.Add("g_spec", row["g_spec"]);
-                            dic.Add("g_price", row["g_price"]);
-                            dic.Add("g_bulk_price", row["g_bulk_price"]);
+                            dic.Add("g_spec", Convert.ToInt32( row["g_spec"]));
+                            dic.Add("g_price",Convert.ToDecimal(  row["g_price"]));
+                            dic.Add("g_bulk_price",Convert.ToDecimal(  row["g_bulk_price"]));
                             goods.Add(dic);
                         }
                     
@@ -573,14 +573,14 @@ namespace DAL
                         foreach (DataRow row in dt.Rows)
                         {
                             Dictionary<string, object> dic = new Dictionary<string,object>();
-                            dic.Add("g_id", row["g_id"]);
-                            dic.Add("g_img_ts", row["g_img_ts"]);
-                            dic.Add("g_quantity", row["g_quantity"]);
+                            dic.Add("g_id", Convert.ToInt32(row["g_id"]));
+                            dic.Add("g_img_ts", Convert.ToInt32(row["g_img_ts"]));
+                            dic.Add("g_quantity", Convert.ToInt32(row["g_quantity"]));
                             dic.Add("g_num", row["g_num"].ToString().Trim());
                             dic.Add("g_name", row["g_name"].ToString().Trim());
-                            dic.Add("g_spec", row["g_spec"]);
-                            dic.Add("g_price", row["g_price"]);
-                            dic.Add("g_bulk_price", row["g_bulk_price"]);
+                            dic.Add("g_spec", Convert.ToInt32(row["g_spec"]));
+                            dic.Add("g_price", Convert.ToDecimal(row["g_price"]));
+                            dic.Add("g_bulk_price", Convert.ToDecimal(row["g_bulk_price"]));
                             dic.Add("g_info:", row["g_name"].ToString().Trim());
                             goods.Add(dic);
 
@@ -662,8 +662,8 @@ namespace DAL
                                 //{
                                 //}
                             }
-                            dics.Add("g_img_ts", row["g_img_ts"]);
-                            dics.Add("g_id", row["g_id"].ToString().Trim());
+                            dics.Add("g_img_ts", Convert.ToInt32(row["g_img_ts"]));
+                            dics.Add("g_id", Convert.ToInt32(row["g_id"]));
                             images.Add(dics);
                         }
                         model.RetDics.Add("images", images);
@@ -782,9 +782,9 @@ namespace DAL
                             dic.Add("l_type", item["类型"].ToString().Trim());
                             dic.Add("l_time", item["日期"].ToString().Trim());
                             dic.Add("l_order_num", item["单号"].ToString().Trim());
-                            dic.Add("l_order_price", item["出货金额"].ToString().Trim());
-                            dic.Add("l_money_paid", item["付款金额"].ToString().Trim());
-                            dic.Add("l_balance", item["余额"].ToString().Trim());
+                            dic.Add("l_order_price",Convert.ToDecimal(  item["出货金额"]));
+                            dic.Add("l_money_paid", Convert.ToDecimal(item["付款金额"]));
+                            dic.Add("l_balance",Convert.ToDecimal( item["余额"]));
                             logs.Add(dic);
                         }
                         //logs
@@ -1080,7 +1080,12 @@ namespace DAL
                                         行号 = row_number()OVER (ORDER BY a.ID DESC),
                                         o_id = a.id,
                                         o_num = 单号 ,
-                                        o_status = b.名称,
+                                        o_status = (CASE WHEN b.名称='待处理' THEN 0
+                                        when 名称='审核订单' THEN 1
+                                        when 名称='配货中' THEN  2 
+                                        when 名称='已发货' THEN 3
+                                        when 名称='已收货' THEN 4
+                                        ELSE -1 END ),
                                         o_note = 备注 ,
                                         o_total = 总金额 ,
                                         o_time = a.日期,
@@ -1092,10 +1097,14 @@ namespace DAL
                                data.page_size , data.etime, data.stime, data.page_size*(data.page_no-1)+1, data.page_size*data.page_no);
 
                 StringBuilder sqlCount = new StringBuilder();
-                sqlCount.AppendFormat(@" select c from( select c=count(1) from  [Mall_订单主表] a
+                sqlCount.AppendFormat(@"  DECLARE	@stime NVARCHAR(30),@etime NVARCHAR(30)
+                                        SET @stime='{1}' SET @etime='{0}'
+                                        IF @stime=@etime  BEGIN 
+                                           SET @etime=convert(nvarchar(30),DATEADD(DAY,1,@etime),120)
+                                        END  select c from( select c=count(1) from  [Mall_订单主表] a
                                         inner join dbo.Mall_订单流程明细 c on a.id = c.订单Id 
                                         inner join [dbo].[Mall_订单流程] b on  c.父id = b.id 
-                                        where a.日期<='{0}' and a.日期>='{1}') as x ", data.etime, data.stime);
+                                        where a.日期<=@etime and a.日期>=@stime) as x ", data.etime, data.stime);
                 //r_count
                 ReturnModel retmodel = SqlHelper.GetDataTable(strSql.ToString(), "x");
 
@@ -1108,7 +1117,7 @@ namespace DAL
                         DataTable dt2 = retCount.SearchResult as DataTable;
                         if (dt2.Rows.Count > 0)
                         {
-                            model.RetDics.Add("r_count", dt2.Rows[0]["c"].ToString().Trim());
+                            model.RetDics.Add("r_count", Convert.ToInt32(dt2.Rows[0]["c"]));
                         }
                     }
                     else
@@ -1125,11 +1134,11 @@ namespace DAL
                             Dictionary<string, object> dic = new Dictionary<string, object>();
                             dic.Add("o_id", row["o_id"].ToString().Trim());
                             dic.Add("o_num", row["o_num"].ToString().Trim());
-                            dic.Add("o_status", row["o_status"].ToString().Trim());
+                            dic.Add("o_status", Convert.ToInt32(row["o_status"]));
                             dic.Add("o_note", row["o_note"].ToString().Trim());
                             dic.Add("o_time", row["o_time"].ToString().Trim());
                             dic.Add("o_audit_time", row["o_audit_time"].ToString().Trim());
-                            dic.Add("o_total", row["o_total"].ToString().Trim());
+                            dic.Add("o_total", Convert.ToDecimal(row["o_total"]));
                             orders.Add(dic);
                         }
                         model.RetDics.Add("orders",orders);
@@ -1287,18 +1296,18 @@ namespace DAL
 
                     strSql.Clear();
                     strSql.AppendFormat(@" insert into  dbo.Mall_订单流程明细(父id,订单id,日期,
-                                       经手人)select (select id from Mall_订单流程 where 编号='15' and 有效=1),
+                                       经手人id)select (select id from Mall_订单流程 where 编号='15' and 有效=1),
                                        {0},getdate(),(select khid from dbo.Mall_订单主表 where id= {0}) where exists(
                                          select id from Mall_订单流程 where  编号='15' and 有效=1  )  ", data.order_id);
 
                     ReturnModel ret = SqlHelper.ExecuteNonQuery(strSql.ToString(),null);
                     if (ret.Succeed)
                     {
-                        int count = Convert.ToInt32(ret.ReturnValue);
-                        if (count == 0)
-                        {
-                            return new RetObj("订单流程编号有误！");
-                        }
+                        //int count = Convert.ToInt32(ret.ReturnValue);
+                        //if (count == 0)
+                        //{
+                        //    return new RetObj("订单流程编号有误！");
+                        //}
                         return new RetObj("订单取消成功！");
                     }
                     //if (dt.Rows.Count > 0)
