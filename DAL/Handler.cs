@@ -1073,10 +1073,8 @@ namespace DAL
                 StringBuilder strSql = new StringBuilder();
                 strSql.AppendFormat(@" DECLARE	@stime NVARCHAR(30),@etime NVARCHAR(30)
                                         SET @stime='{2}' SET @etime='{1}'
-                                        IF @stime=@etime
-                                        BEGIN 
-                                           SET @etime=convert(nvarchar(30),DATEADD(DAY,1,@etime),120)
-                                        END  select top {0} * from( select 
+                                       SET @etime=convert(nvarchar(30),DATEADD(DAY,1,@etime),120)
+                                        select top {0} * from( select 
                                         行号 = row_number()OVER (ORDER BY a.ID DESC),
                                         o_id = a.id,
                                         o_num = 单号 ,
@@ -1222,7 +1220,7 @@ namespace DAL
                         model.RetDics.Add("o_goods", o_goods);
                         return model;
                     }
-                    RetObj ret = new RetObj(0, "获取失败！");
+                    RetObj ret = new RetObj(0, "无此订单！");
                     return ret;
                 }
                 else
@@ -1247,7 +1245,12 @@ namespace DAL
             try
             {
                 StringBuilder strSql = new StringBuilder();
-                strSql.Append(@"  ");
+                strSql.AppendFormat(@"   SELECT l_time=a.日期,l_content = c.名称,l_user = k.名称 
+                                  FROM dbo.Mall_订单流程明细 a
+                                  JOIN dbo.Mall_订单流程 c ON a.父id = c.id
+                                  JOIN [Mall_订单主表] b ON a.订单id = b.id
+                                  LEFT JOIN dbo.客户档案 k ON k.id = a.经手人id
+                                  WHERE b.id={0} ",data.order_id??0);
 
 
                 ReturnModel retmodel = SqlHelper.GetDataTable(strSql.ToString(), "a");
@@ -1259,7 +1262,18 @@ namespace DAL
                     if (dt.Rows.Count > 0)
                     {
                         RetObj model = new RetObj(1, "获取成功！");
-                        model.RetDics.Add("m_balance", Convert.ToInt32(dt.Rows[0]["balance"]));
+                        List<Dictionary<string, object>> list = new List<Dictionary<string, object>>();
+                        foreach (DataRow item in dt.Rows)
+                        {
+                            Dictionary<string, object> log = new Dictionary<string, object>();
+                            log.Add("l_time",item["l_time"].ToString().Trim());
+                            log.Add("l_content", item["l_content"] == System.DBNull.Value ? "" : item["l_content"]);
+                            log.Add("l_user", item["l_user"]);
+                            list.Add(log);
+                        }
+                        model.RetDics.Add("logs",list);
+
+                        //logs
                         return model;
                     }
                     RetObj ret = new RetObj(0, "获取失败！");
@@ -1288,13 +1302,56 @@ namespace DAL
             {
                 StringBuilder strSql = new StringBuilder();
                 strSql.AppendFormat(@" select c=count(1)  from  dbo.Mall_订单主表 a where a.id ={0}",data.order_id);
-
+                //是有待处理中才可以取消订单
 
                 ReturnModel retmodel = SqlHelper.GetDataTable(strSql.ToString(), "a");
 
                 if (retmodel.Succeed)
                 {
+               
                     DataTable dt = retmodel.SearchResult as DataTable;
+                    if (dt.Rows.Count == 0)
+                    {
+                        return new RetObj("该订单不存在！");
+                    }
+
+                    #region 验证订单是否已作废  
+
+                    string sql = @" select * from (select c=COUNT(1)  from  Mall_订单流程明细 a
+                                    JOIN dbo.Mall_订单流程 c ON a.父id = c.id
+                                   WHERE 订单id=" + data.order_id ?? 0 + " AND c.编号='15') as a ";
+
+                    ReturnModel retcount = SqlHelper.GetDataTable(sql, "a");
+                    if (retcount.Succeed==false)
+                    {
+                        return new RetObj(retcount.Message);
+                    }
+                    DataTable dtCount = retcount.SearchResult as DataTable;
+                    int count = Convert.ToInt32(dtCount.Rows[0]["c"].ToString());
+                    if (count > 0)
+                    {
+                        return new RetObj("操作失败，订单已作废！");
+                    }
+
+                    #endregion 
+
+                    #region  已审核的订单不可作废
+                            
+                     sql = @" select * from (select c=COUNT(1)  from  Mall_订单流程明细 a
+                                    JOIN dbo.Mall_订单流程 c ON a.父id = c.id
+                                   WHERE 订单id=" + data.order_id ?? 0 + " AND c.编号='11') as a ";
+
+                    ReturnModel auditRet = SqlHelper.GetDataTable(sql, "a");
+                    if (auditRet.Succeed == false)
+                    {
+                        return new RetObj(auditRet.Message);
+                    }
+                    DataTable audtitDT = retcount.SearchResult as DataTable;
+                    if (Convert.ToInt32(audtitDT.Rows[0]["c"].ToString()) > 0)
+                    {
+                        return new RetObj("订单已审核，不可取消！");
+                    }
+                    #endregion 
 
                     strSql.Clear();
                     strSql.AppendFormat(@" insert into  dbo.Mall_订单流程明细(父id,订单id,日期,
@@ -1305,20 +1362,9 @@ namespace DAL
                     ReturnModel ret = SqlHelper.ExecuteNonQuery(strSql.ToString(),null);
                     if (ret.Succeed)
                     {
-                        //int count = Convert.ToInt32(ret.ReturnValue);
-                        //if (count == 0)
-                        //{
-                        //    return new RetObj("订单流程编号有误！");
-                        //}
                         return new RetObj("订单取消成功！");
                     }
-                    //if (dt.Rows.Count > 0)
-                    //{
-                    //    RetObj model = new RetObj(1, "获取成功！");
-                    //    model.RetDics.Add("m_balance", Convert.ToInt32(dt.Rows[0]["balance"]));
-                    //    return model;
-                    //}
-                    
+                 
                     return  new RetObj(ret.Message);
                 }
                 else
@@ -1343,17 +1389,18 @@ namespace DAL
             try
             {
                 StringBuilder strSql = new StringBuilder();
-                strSql.Append(@" select * from ( SELECT 
-                                g_cat_id =c.id ,
-                                g_cat_name = c.名称,
+                strSql.AppendFormat(@" select * from ( SELECT 
+                                item_id =b.id ,
+                                item_name = b.名称,
                                 g_id = p.id,
-                                g_img_ts= p.updateno,
+                                g_img_ts= CONVERT(BIGINT,p.updateno),
                                 g_name = p.名称
                                 FROM dbo.商品档案 p
-                                LEFT JOIN dbo.商品类型 c ON p.类型编号 = c.编号
                                 join dbo.Mall_首页项目明细 a ON a.spid	=p.id
-                                JOIN dbo.Mall_首页项目 b ON a.父id = b.id
-                                WHERE b.名称='推荐' ) as a ");
+                                JOIN dbo.Mall_首页项目 b ON a.父id = b.id 
+                                WHERE a.spid IN (SELECT TOP {0} spid FROM  
+                                dbo.Mall_首页项目明细 WHERE 父id=b.id)
+                                 ) as x ORDER BY x.item_id ",data.cat_goods_count??0);
                 ReturnModel retmodel = SqlHelper.GetDataTable(strSql.ToString(), "a");
 
                 if (retmodel.Succeed)
@@ -1363,21 +1410,57 @@ namespace DAL
                     List<Dictionary<string, object>> goods = new List<Dictionary<string, object>>();
                     List<Dictionary<string, object>> list = new List<Dictionary<string, object>>();
 
+                    int catid = 0;
+                    int index = 0;
+                    Dictionary<string, object> cat = null;
                     foreach (DataRow item in dt.Rows)
                     {
-                        Dictionary<string, object> cat = new Dictionary<string, object>();
-                        cat.Add("g_cat_id", item["g_cat_id"].ToString().Trim());
-                        cat.Add("g_cat_name", item["g_cat_name"].ToString().Trim());
-                        Dictionary<string, object> god = new Dictionary<string, object>();
-                        god.Add("g_id", item["g_id"].ToString().Trim());
-                        god.Add("g_img_ts", item["g_img_ts"].ToString());
-                        god.Add("g_name", item["g_name"].ToString());
+                        if (index == 0)
+                        {
+                            Dictionary<string, object> god = new Dictionary<string, object>();
+                            god.Add("g_id", Convert.ToInt32(item["g_id"].ToString().Trim()));
+                            god.Add("g_img_ts", Convert.ToInt32(item["g_img_ts"]));
+                            god.Add("g_name", item["g_name"].ToString().Trim());
+                            goods.Add(god);
 
-                        goods.Add(god);
-                        list.Add(cat);
+                            cat = new Dictionary<string, object>();
+                            cat.Add("item_id", Convert.ToInt32(item["item_id"]));
+                            cat.Add("item_name", item["item_name"].ToString().Trim());
+
+                            catid = Convert.ToInt32(item["item_id"]);
+                            index++;
+                            continue;
+                        }
+                        if (catid == Convert.ToInt32(item["item_id"]))
+                        {
+                            Dictionary<string, object> god = new Dictionary<string, object>();
+                            god.Add("g_id", Convert.ToInt32(item["g_id"].ToString().Trim()));
+                            god.Add("g_img_ts", Convert.ToInt32(item["g_img_ts"]));
+                            god.Add("g_name", item["g_name"].ToString().Trim());
+                            goods.Add(god);
+                        }
+                        else
+                        {
+                            cat.Add("g_list", goods);
+                            list.Add(cat);
+                            goods = new List<Dictionary<string, object>>();
+                            cat = new Dictionary<string, object>();
+                            cat.Add("item_id", Convert.ToInt32(item["item_id"]));
+                            cat.Add("item_name", item["item_name"].ToString().Trim());
+                           
+                            Dictionary<string, object> god = new Dictionary<string, object>();
+                            god.Add("g_id", Convert.ToInt32(item["g_id"].ToString().Trim()));
+                            god.Add("g_img_ts", Convert.ToInt32(item["g_img_ts"]));
+                            god.Add("g_name", item["g_name"].ToString().Trim());
+                            goods.Add(god);
+                            catid = Convert.ToInt32(item["item_id"]);
+                        }
+
+                        index++;
                     }
-                    model.RetDics.Add("list", list);
-                    model.RetDics.Add("goods",goods);
+                    cat.Add("g_list", goods);
+                    list.Add(cat);
+                    model.RetDics.Add("items", list);
                     return model;
                 }
                 else

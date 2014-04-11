@@ -31,6 +31,7 @@ namespace Model
         public string goods_data { set; get; }
         public int? order_id { set; get; }
         public string delivery_date { get; set; }
+        public int? cat_goods_count { get; set; }
     }
 
     public class GoodData
